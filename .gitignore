@@ -1,0 +1,83 @@
+# Build outputs
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.o
+*.a
+*.so
+
+# Generated files
+test_mod.h
+*_ext.bin
+generated__.ld
+
+# Backup files
+*.bak
+*.swp
+*~
+.*.swp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Debugging
+*.log
+*.dmp
+*.gdb
+.gdb_history
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# OS generated
+*.orig
+*.rej
+.directory
+
+# Compiled Object files
+*.slo
+*.lo
+*.ko
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Archives
+*.lib
+*.a
+
+# Shared objects
+*.dll
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Dependencies
+.deps/
+*.d
+
+# Python (if using helper scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+venv/
+env/
+
+# Documentation builds
+docs/_build/
+*.pdf
