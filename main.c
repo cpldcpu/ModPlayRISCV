@@ -1,8 +1,10 @@
 /*
  * MOD Player using Advanced Control Timer (TIM1) for PWM generation with DMA
- * 03-28-2023 E. Brombaugh
- * Modified to use DMA for PWM value loading
- * Integrated with MODPlay engine for MOD file playback
+ * cpldcpu Oct 26, 2023
+ *
+ * Based on CH32fun PWM example 03-28-2023 E. Brombaugh
+ * Modified to use DMA for PWM value loading - inspired from https://github.com/BogdanTheGeek/ch32fun-audio/blob/main/main.c
+ * Integrated with MODPlay engine for MOD file playback - Original MODplay: https://github.com/prochazkaml/MODPlay 
  */
 
 #include "ch32fun.h"
