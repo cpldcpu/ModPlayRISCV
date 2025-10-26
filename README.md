@@ -68,16 +68,15 @@ There is still significant high-frequency noise visible in the filtered audio, b
 This is just a quick experiment, so there are many possible improvements:
 - Support for other tracker formats (S3M, XM, IT). I found [MODplay](https://www.chn-dev.net/Projects/MODPlay/) quite promising, but the memory footprint is significantly larger (~30kb flash)
 
-- Using better digital signal processing techniques to improve audio quality (interpolation, filtering, noise shaping). For example one could go for 8bit PWM resolution at 176kHz sample rate to move all the PWM noise far away from the audio band. Delta-sigma modulation with dithering can then be used to recover the loss in resolution, even going beyond the 11 bit we are using now. A first estimate of achievable SNR vs bit depth is shown below:
+- Using better digital signal processing techniques to improve audio quality (interpolation, filtering, noise shaping). For example one could go for 8bit PWM resolution at 176kHz sample rate to move all the PWM noise far away from the audio band. Delta-sigma modulation with dithering can then be used to recover the loss in resolution, even going beyond the 11 bit we are using now. A first estimate of achievable SNR vs bit depth is shown below. The two lines indicate 12bit and 14bit effective number of bits (ENOB) after noise shaping.
+
+<div align="center">
+  <img src="media/snr_vs_bits_with_baseline_22k.png" alt="Audio" style="width:50%;max-width:50%;height:auto;" />
+</div>
 
 <div align="center">
   <pre>MODplay (INT driven) -> Noise shaper -> SRAM (Ring buffer) -> DMA -> Timer PWM -> RC Filter -> Audio Out</pre>
 </div>
-
-<div align="center">
-  <img src="media/snr_vs_bits_with_baseline_22k.png" alt="Audio" style="width:40%;max-width:40%;height:auto;" />
-</div>
-
 
 ## Building and Usage
 
