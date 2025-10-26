@@ -4,7 +4,7 @@ This is a tiny experiment that plays tracker music ([MOD format](https://en.wiki
 
 It is based on a modified version of the [MODPlay](https://github.com/prochazkaml/MODPlay) library and takes some inspiration from [BogdanTheGeek/ch32fun-audio](https://github.com/BogdanTheGeek/ch32fun-audio).
 
-Memory footprint is around 4-5kb flash and ~1kb RAM. I used a CH32V002 for testing. The code would also work on CH32V003, but with increased CPU load due to the missing multiplication instruction. CH32V006 is recommended to allow using larger MOD files.
+Memory footprint is around 4-5kb flash (+space for the MOD file) and ~1kb RAM. I used a CH32V002 for testing. The code would also work on CH32V003, but with increased CPU load due to the missing multiplication instruction. CH32V006 is recommended to allow using larger MOD files.
 
 ### Images
 
