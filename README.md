@@ -4,7 +4,7 @@ This is a tiny experiment that plays tracker music ([MOD format](https://en.wiki
 
 It is based on a modified version of the [MODPlay](https://github.com/prochazkaml/MODPlay) library and takes some inspiration from [BogdanTheGeek/ch32fun-audio](https://github.com/BogdanTheGeek/ch32fun-audio).
 
-Memory footprint is around 4-5kb flash and ~1kb RAM.  The code would also work on CH32V003, but with increased CPU load due to the missing multiplication instruction. CH32V006 is recommended to allow using larger MOD files.
+Memory footprint is around 4-5kb flash and ~1kb RAM. I used a CH32V002 for testing. The code would also work on CH32V003, but with increased CPU load due to the missing multiplication instruction. CH32V006 is recommended to allow using larger MOD files.
 
 ### Images
 
@@ -41,7 +41,7 @@ The full pipeline looks like this:
 <pre>MODplay (INT driven) -> SRAM (Ring buffer) -> DMA -> Timer PWM (PC3) -> RC Filter -> Audio Out</pre>
 </div>
 
-I integrated a simple SysTick-based profiler to measure the interrupt handler execution time in real-time. Here is an example output while playing a MOD file which the inner loop running in SRAM for zero wait states execution:
+I integrated a simple SysTick-based profiler to measure the interrupt handler execution time in real-time. Here is an example output while playing a MOD file with the inner loop running in SRAM for zero wait states execution:
 
 ```
 IRQ: avg=936 us, min=824 us, max=1031 us, rate=172 Hz, CPU=16%
@@ -68,7 +68,7 @@ There is still significant high-frequency noise visible in the filtered audio, b
 This is just a quick experiment, so there are many possible improvements:
 - Support for other tracker formats (S3M, XM, IT). I found [MODplay](https://www.chn-dev.net/Projects/MODPlay/) quite promising, but the memory footprint is significantly larger (~30kb flash)
 
-- Using better digital signal processing techniques to improve audio quality (interpolation, filtering, noise shaping). For example one could go for 8bit PWM resolution at 176kHz sample rate to move all the PWM noise far away from the audio band. Delta-sigma modulation with dithering can then be used to recover the loss in resolution, even going beyond the 11 bit we are using now. A first estimate of achievable SNR vs bit depth is shown below. The two lines indicate 12bit and 14bit effective number of bits (ENOB) after noise shaping.
+- Using better digital signal processing techniques to improve audio quality (interpolation, filtering, noise shaping). For example one could go for 8bit PWM resolution at 176kHz sample rate to move all the PWM noise far away from the audio band. Delta-sigma modulation with dithering can then be used to recover the loss in resolution, even going beyond the 11 bit we are using now. A first estimate of achievable SNR vs bit depth is shown below. When the PWM resolution is reduced, the sample rate increases, which will improve the efficacy of the noise shaper. Hence we see a better SNR for lower PWM resolution. This would come at the expense of additional CPU overhead for the signal processing. The two dashed lines indicate 12bit and 14bit effective number of bits (ENOB) after noise shaping.
 
 <div align="center">
   <img src="media/snr_vs_bits_with_baseline_22k.png" alt="Audio" style="width:50%;max-width:50%;height:auto;" />
@@ -112,7 +112,7 @@ This will:
 
 Optionally: Run `make monitor` to watch debugging output.
 
-The audio output is streamed to `PC3` (inverted) and `P4` (non-inverted). Connect a speaker there. Add voltage divider or RC filter for better audio quality.
+The audio output is streamed to `PC3` (inverted) and `P4` (non-inverted). Connect an audio amplifier here. A small speaker may also work. Add RC filter for better audio quality (1kOhm + 10nF), a coupling capacitor in series (tens of µF) helps to remove DC from speaker/amplifier.
 
 ### Original Projects
 
