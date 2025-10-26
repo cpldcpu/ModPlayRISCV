@@ -8,7 +8,7 @@ Memory footprint is around 4-5kb flash and ~1kb RAM.  The code would also work o
 
 ### Images
 
-<div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center;">
+<div align="center">
   <img src="media/board.jpg" alt="Board" style="width:40%;max-width:60%;height:auto;" />
 </div>
 
