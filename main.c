@@ -1,6 +1,8 @@
 /*
  * MOD Player using Advanced Control Timer (TIM1) for PWM generation with DMA
  * cpldcpu Oct 26, 2023
+ * 
+ * Audio output on PC3 (inverter) and P4 (non-inverted) using complementary PWM outputs
  *
  * Based on CH32fun PWM example 03-28-2023 E. Brombaugh
  * Modified to use DMA for PWM value loading - inspired from https://github.com/BogdanTheGeek/ch32fun-audio/blob/main/main.c
