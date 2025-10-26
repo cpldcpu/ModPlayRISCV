@@ -19,6 +19,8 @@ Memory footprint is around 4-5kb flash and ~1kb RAM.  The code would also work o
   Your browser does not support the video tag. You can download the video here: [movie.mp4](media/movie.mp4)
 </video>
 
+[link](media/movie.mp4)
+
 ## Some Background
 
 People often seem to associate low-cost microcontrollers with playing beeps and simple melodies. However, even if MCUs are usually manufactured on trailing-edge semiconductor manufacturing nodes, they are not exempt from Moores law. A "$0.10" 32-Bit Microcontroller today packs significantly more processing power and vastly more powerful peripherals compared to an AVR/PIC from decades ago.
@@ -54,9 +56,9 @@ This leaves ample processing time for other tasks, so even on this tiny MCU, we 
 
 I used a two stage RC low-pass filter (1kohm+10nF, 3dB@~15kHz) to smooth the PWM output. You can see the unfiltered PWM on the left and filtered audio signal on the right:
 
-<div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center;">
-  <img src="media/pwm.jpg" alt="Audio" style="width:40%;max-width:40%;height:auto;" />
-  <img src="media/audio.jpg" alt="Audio" style="width:40%;max-width:40%;height:auto;" />
+<div align="center">
+  <img src="media/pwm.jpg"  style="width:40%;max-width:40%;height:auto;" />
+  <img src="media/audio.jpg" style="width:40%;max-width:40%;height:auto;" />
 </div>
 
 There is still significant high-frequency noise visible in the filtered audio, but it seems the speakers do a good job of low pass filtering it out further. A better option may be to use a higher PWM frequency and implement noise shaping / delta-sigma modulation to recover SNR.
@@ -69,11 +71,11 @@ This is just a quick experiment, so there are many possible improvements:
 - Using better digital signal processing techniques to improve audio quality (interpolation, filtering, noise shaping). For example one could go for 8bit PWM resolution at 176kHz sample rate to move all the PWM noise far away from the audio band. Delta-sigma modulation with dithering can then be used to recover the loss in resolution, even going beyond the 11 bit we are using now. A first estimate of achievable SNR vs bit depth is shown below:
 
 <div align="center">
-<pre>MODplay (INT driven) -> Noise shaper -> SRAM (Ring buffer) -> DMA -> Timer PWM -> RC Filter -> Audio Out</pre>
+  <pre>MODplay (INT driven) -> Noise shaper -> SRAM (Ring buffer) -> DMA -> Timer PWM -> RC Filter -> Audio Out</pre>
 </div>
 
-<div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center;">
-  <img src="media/snr_vs_bits_with_baseline_22k.png" alt="Audio" style="width:60%;max-width:60%;height:auto;" />
+<div align="center">
+  <img src="media/snr_vs_bits_with_baseline_22k.png" alt="Audio" style="width:40%;max-width:40%;height:auto;" />
 </div>
 
 
