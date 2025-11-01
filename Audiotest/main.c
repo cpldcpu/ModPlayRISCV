@@ -8,9 +8,10 @@
 #include <stdint.h>
 
 // Audio configuration
-#define DMASIZE		      8	
+#define DMASIZE		      8
 #define OSR			      8
 #define FRACTIONALDSM     1			 // 1 = active
+#define NOISE_MODE        1          // 0 = sine wave, 1 = white noise
 #define SAMPLE_RATE       187500/8U      // PWM update/sample rate
 #define BUF_SAMPLES       512U        // DMA transfer length in samples
 #define SINE_FREQ         500U        // Generated tone frequency in Hz
@@ -91,9 +92,20 @@ static void fill_pwm_buffer(int32_t start, int32_t count)
 
 	for(int32_t i = 0; i < count; i+=OSR)
 	{
+#if NOISE_MODE == 1
+		// White noise generation using LFSR
+		uint32_t noise = dither_lfsr_next();
+		// Treat noise as signed Q31 value (range [-1, 1])
+		// Scale by PWM_AMPLITUDE and convert to 16.16 fixed point (matching sine processing)
+		int32_t sample = (int32_t)(((int64_t)(int32_t)noise * PWM_AMPLITUDE) >> 15);
+		// Center at PWM_CENTER in 16.16 fixed point format
+		uint32_t val = (uint32_t)((PWM_CENTER << 16) + sample);
+#else
+		// Sine wave generation using magic circle oscillator
 		// uint32_t dither=dither_lfsr_next();
 		// int32_t val=magic_circle_next_pwm(&g_oscillator) + (dither & 0x007f);
 		uint32_t val=magic_circle_next_pwm(&g_oscillator);
+#endif
 		uint32_t integer= val>>16;
 		uint32_t fraction = val<<16;
 
@@ -345,7 +357,11 @@ int main()
 {
 	SystemInit();
 
+#if NOISE_MODE == 1
+	printf("\r\r\n\nWhite Noise Generator with PWM/DMA Audio\n\r");
+#else
 	printf("\r\r\n\n500 Hz Sine Generator with PWM/DMA Audio\n\r");
+#endif
 
 	t1pwm_init();
 
@@ -360,7 +376,11 @@ int main()
 	// NOW start the DMA and timer
 	pwm_audio_start();
 
+#if NOISE_MODE == 1
+	printf("White noise playback active!\n\r");
+#else
 	printf("Sine playback active!\n\r");
+#endif
 
 	while(1)
 	{
