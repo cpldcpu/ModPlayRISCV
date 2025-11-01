@@ -2,7 +2,7 @@
  * MOD Player using Advanced Control Timer (TIM1) for PWM generation with DMA
  * cpldcpu Oct 26, 2023
  * 
- * Audio output on PC3 (inverter) and P4 (non-inverted) using complementary PWM outputs
+ * Audio output on PC3 (inverter) and Pc4 (non-inverted) using complementary PWM outputs
  *
  * Based on CH32fun PWM example 03-28-2023 E. Brombaugh
  * Modified to use DMA for PWM value loading - inspired from https://github.com/BogdanTheGeek/ch32fun-audio/blob/main/main.c
@@ -136,13 +136,17 @@ void t1pwm_init( void )
 	AFIO->PCFR1 &= ~AFIO_PCFR1_TIM1_RM;      // clear the 2-bit field
 	AFIO->PCFR1 |=  AFIO_PCFR1_TIM1_RM_1 | AFIO_PCFR1_TIM1_RM_0;    // set remap = 2 (don't OR the same macro twice)
 
-	// PC3 is T1CH1N, 10MHz Output alt func, push-pull
+	// Set PC3 and PC4 low before configuring to ensure drivers are off
+	GPIOC->OUTDR &= ~((1<<3) | (1<<4));
 	GPIOC->CFGLR &= ~(0xf<<(4*3));
-	GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP_AF)<<(4*3);
-
-	// PC4 is T1CH1, 10MHz Output alt func, push-pull
 	GPIOC->CFGLR &= ~(0xf<<(4*4));
-	GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP_AF)<<(4*4);
+
+	// // PC3 is T1CH1N, 10MHz Output alt func, push-pull
+	// GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP_AF)<<(4*3);
+
+	// // PC4 is T1CH1, 10MHz Output alt func, push-pull
+	// GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP_AF)<<(4*4);
+
 
 	// Reset TIM1 to init all regs
 	RCC->APB2PRSTR |=  RCC_APB2Periph_TIM1;
@@ -207,6 +211,15 @@ void pwm_audio_start(void)
 
 	// Start the timer - this begins the DMA transfers
 	TIM1->CTLR1 |= TIM1_CTLR1_CEN;
+
+	Delay_Us(100);
+	// Ensure timer output is active before enabling pin drivers to prevent stuck speaker
+
+	// PC3 is T1CH1N, 10MHz Output alt func, push-pull
+	GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP_AF)<<(4*3);
+	// PC4 is T1CH1, 10MHz Output alt func, push-pull
+	GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP_AF)<<(4*4);
+
 }
 
 /*
@@ -214,6 +227,9 @@ void pwm_audio_start(void)
  */
 void pwm_audio_stop(void)
 {
+	GPIOC->CFGLR &= ~(0xf<<(4*3));
+	GPIOC->CFGLR &= ~(0xf<<(4*4));
+
 	TIM1->CTLR1 &= ~TIM1_CTLR1_CEN;
 	TIM1->DMAINTENR &= ~TIM1_DMAINTENR_UDE;
 	DMA1_Channel5->CFGR &= ~DMA_CFGR1_EN;
