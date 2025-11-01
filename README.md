@@ -21,6 +21,7 @@ Memory footprint is around 4-5kb flash (+space for the MOD file) and ~1kb RAM. I
 
 [link](media/movie.mp4)
 
+
 ## Some Background
 
 People often seem to associate low-cost microcontrollers with playing beeps and simple melodies. However, even if MCUs are usually manufactured on trailing-edge semiconductor manufacturing nodes, they are not exempt from Moores law. A "$0.10" 32-Bit Microcontroller today packs significantly more processing power and vastly more powerful peripherals compared to an AVR/PIC from decades ago.
@@ -77,6 +78,10 @@ This is just a quick experiment, so there are many possible improvements:
 <div align="center">
   <pre>MODplay (INT driven) -> Noise shaper -> SRAM (Ring buffer) -> DMA -> Timer PWM -> RC Filter -> Audio Out</pre>
 </div>
+
+### Update (01-Nov-2025)
+
+Updated the code to use a combination of higher frequency PWM and fractional Sigma-Delta modulator. Will write update the theoretical background on this soon. There are improvements in THD and SINAD, but the improvement is not really audible with the currently used music.
 
 ## Building and Usage
 

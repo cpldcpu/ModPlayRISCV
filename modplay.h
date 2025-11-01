@@ -83,11 +83,11 @@ ModPlayerStatus_t *InitMOD(const uint8_t *mod, uint32_t samplerate);
 #ifndef USING_EXTERNAL_RENDERING
 
 /*
- * ModPlayerStatus_t *RenderMOD(short *buf, int len);
+ * ModPlayerStatus_t *RenderMOD(uint8_t *buf, int len);
  *
  * Renders a buffer from the MOD given to InitMOD() to `*buf`.
  *
- * NOTE: `len` specifies the number of samples, NOT BYTES.
+ * NOTE: `len` specifies the number of audio samples, NOT PWM samples or bytes.
  *
  * STEREO MODE (default, USE_MONO_OUTPUT=0):
  * Renders in 16-bit stereo, so the `*buf` array is expected
@@ -102,16 +102,15 @@ ModPlayerStatus_t *InitMOD(const uint8_t *mod, uint32_t samplerate);
  * 3     | Sample 1, right channel
  * ...   | ...
  *
- * MONO MODE (USE_MONO_OUTPUT=1):
- * Renders in 16-bit mono, so the `*buf` array is expected
- * to have `len` * 2 allocated bytes of memory (1 channel * 2 bytes).
- * All channels are mixed equally without panning.
- *
- * This makes it compatible with many popular audio output
- * libraries without any extra conversion (SDL, PortAudio etc).
+ * MONO MODE with PWM output (USE_MONO_OUTPUT=1):
+ * Renders 8-bit PWM values with delta-sigma modulation and oversampling.
+ * The `*buf` array is expected to have `len` * OSR allocated bytes
+ * (e.g., with OSR=8: len * 8 bytes for 8x oversampled PWM output).
+ * All channels are mixed equally without panning, then converted to
+ * 8-bit PWM values (0-255) suitable for direct DMA output to a timer.
  */
 
-ModPlayerStatus_t *RenderMOD(short *buf, int len,int osr);
+ModPlayerStatus_t *RenderMOD(volatile uint8_t *buf, int len);
 
 #endif
 

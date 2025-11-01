@@ -38,6 +38,9 @@ void _assert(int cond, const char *condstr, const ModPlayerStatus_t *mp, int lin
 
 ModPlayerStatus_t mp;
 
+// Delta-sigma residual accumulator for PWM output
+static uint32_t g_dsm_residual = 0;
+
 static const int32_t finetune_table[16] = {
 	65536, 65065, 64596, 64132,
 	63670, 63212, 62757, 62306,
@@ -429,9 +432,8 @@ ModPlayerStatus_t *ProcessMOD() {
 	return &mp;
 }
 
-ModPlayerStatus_t *RenderMOD(short *buf, int len, int osr) {
+ModPlayerStatus_t *RenderMOD(volatile uint8_t *buf, int len) {
 #if USE_MONO_OUTPUT
-	memset(buf, 0, len * 2);  // Mono: 1 channel * 2 bytes
 	const int32_t chmul = 32768;  // 131072 / 2 channels
 #else
 	memset(buf, 0, len * 4);  // Stereo: 2 channels * 2 bytes
@@ -439,7 +441,7 @@ ModPlayerStatus_t *RenderMOD(short *buf, int len, int osr) {
 	const int32_t minorchmul = 21845;  // 131072 / 6
 #endif
 
-	for(int s = 0; s < len; s+=osr) {
+	for(int s = 0; s < len; s++) {
 		// Process the tick, if necessary
 
 		if(mp.audiotick <= 0) {
@@ -447,7 +449,7 @@ ModPlayerStatus_t *RenderMOD(short *buf, int len, int osr) {
 			mp.audiotick = mp.audiospeed;
 		}
 
-		mp.audiotick-=osr;
+		mp.audiotick--;
 
 		// Render the audio
 
@@ -515,7 +517,7 @@ ModPlayerStatus_t *RenderMOD(short *buf, int len, int osr) {
 
 				// Advance to the next required sample
 
-				pch->currentsubptr += pch->period*osr;
+				pch->currentsubptr += pch->period;
 
 				if(pch->currentsubptr >= 0x10000) {
 					pch->currentptr += pch->currentsubptr >> 16;
@@ -528,11 +530,53 @@ ModPlayerStatus_t *RenderMOD(short *buf, int len, int osr) {
 		}
 
 #if USE_MONO_OUTPUT
-		// buf[s] = mono / 65536;
-		for (int i = 0; i < osr; i++) {
-			buf[s + i] = ((mono / 65536)+32768)>>pwm_shift;  // scale to 11 bit output
-			
-		}
+		// Direct delta-sigma modulation to 8-bit PWM with oversampling
+		// Scale mono (signed 32-bit) to unsigned 16-bit centered at 32768
+		uint32_t sample16 = ((mono >> 16) + 32768) & 0xFFFF;
+
+		// Split into integer (PWM value 0-255) and fractional part for delta-sigma
+		register uint32_t p = sample16 >> 8;           // Upper 8 bits
+		register uint32_t f = sample16 << 16;          // Lower 8 bits as fraction
+		register uint32_t a = g_dsm_residual;          // Accumulator
+		__asm__ volatile (
+			"add   %0, %0, %2\n\t"     // accu += fraction
+			"sltu  t0, %0, %2\n\t"     // t0 = carry
+			"add   t0, t0, %1\n\t"     // t0 = pwm + carry
+			"sb    t0, 0(%3)\n\t"      // store byte
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 1(%3)\n\t"
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 2(%3)\n\t"
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 3(%3)\n\t"
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 4(%3)\n\t"
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 5(%3)\n\t"
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 6(%3)\n\t"
+			"add   %0, %0, %2\n\t"
+			"sltu  t0, %0, %2\n\t"
+			"add   t0, t0, %1\n\t"
+			"sb    t0, 7(%3)\n\t"
+			: "+r" (a)
+			: "r" (p), "r" (f), "r" (buf)
+			: "t0", "memory"
+		);
+		g_dsm_residual = a;
+		buf += 8;
 #else
 		buf[s * 2] = l / 65536;
 		buf[s * 2 + 1] = r / 65536;

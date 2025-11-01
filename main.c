@@ -15,22 +15,22 @@
 
 // Configure MODPlay for mono output and include implementation
 #define USE_MONO_OUTPUT 1
-#define USE_LINEAR_INTERPOLATION 1
+#define USE_LINEAR_INTERPOLATION 0
 #define CHANNELS 4
-#define pwm_shift        5             // PWM shift to scale 16-bit to 11-bit
+#define pwm_shift        8             // PWM shift for 8-bit output
+#define OSR              8             // Oversampling ratio for delta-sigma
 
 
 #include "modplay.c"
 // Move criticial functions to sram to speed up processing. takes ~2kb sram
-ModPlayerStatus_t *RenderMOD(short *buf, int len, int osr) __attribute__((section(".srodata"))) __attribute__((used));
+ModPlayerStatus_t *RenderMOD(volatile uint8_t *buf, int len) __attribute__((section(".srodata"))) __attribute__((used));
 ModPlayerStatus_t *ProcessMOD() __attribute__((section(".srodata"))) __attribute__((used));
 void _RecalculateWaveform(Oscillator_t *oscillator) __attribute__((section(".srodata"))) __attribute__((used));
 
 
 // Audio configuration
-#define SAMPLE_RATE      22050*1         // MOD playback sample rate
-#define BUF_SAMPLES      256           // Reduced buffer size to save RAM
-#define osr              1             // oversampling ratio
+#define SAMPLE_RATE      22050         // MOD playback sample rate
+#define BUF_SAMPLES      128           // Audio samples (not PWM samples)
 
 
 // Include embedded MOD file
@@ -38,7 +38,7 @@ void _RecalculateWaveform(Oscillator_t *oscillator) __attribute__((section(".sro
 
 
 // Ring buffer for CH1 PWM compare values (0..255)
-static volatile uint16_t  g_rb_ch1[BUF_SAMPLES];
+static volatile uint8_t  g_rb_ch1[BUF_SAMPLES * OSR];  // 8-bit PWM buffer with oversampling
 static volatile size_t   g_buffer_offset = 0;  // Tracks which half of buffer DMA just finished
 
 // MOD player pointer
@@ -90,9 +90,9 @@ void DMA1_Channel5_IRQHandler(void)
 
 		g_buffer_offset = offset;
 
-		// Render MOD audio samples
+		// Render MOD audio samples with delta-sigma modulation
 		if (mod_player) {
-			RenderMOD((short *)(void *)&g_rb_ch1[offset], BUF_SAMPLES/2, osr);
+			RenderMOD(&g_rb_ch1[offset * OSR], BUF_SAMPLES/2);
 		}
 
 		// Re-check interrupt flags in case new interrupt occurred during handling
@@ -151,10 +151,12 @@ void t1pwm_init( void )
 	// Prescaler to achieve sample/update rate
 	TIM1->PSC = 0;  // 48MHz PWM clock
 
-	// Auto Reload - determines PWM resolution 
-	// 48 Mhz / 2177 = ~22050 Hz
-	TIM1->ATRLR = 2176;  // 11-bit PWM, sample rate = 22.05 kHz 
-	// TIM1->ATRLR = 273;  // 8-bit PWM, sample rate = 22.05*8 kHz 
+	// Auto Reload - determines PWM resolution
+	TIM1->ATRLR = 255;  // 8-bit PWM, effective sample rate = 22.05 kHz * 8 (OSR)
+
+	// Set Center aligned PWM on Timer 1 - reduces harmonics
+	TIM1->CTLR1 &= ~TIM1_CTLR1_CMS;
+	TIM1->CTLR1 |= TIM1_CTLR1_CMS_0;  // Mode 1: center-aligned, interrupt on down-count
 
 	// Reload immediately
 	TIM1->SWEVGR |=  TIM1_SWEVGR_UG;
@@ -178,10 +180,10 @@ void t1pwm_init( void )
 	DMA1_Channel5->CFGR  = 0;
 	DMA1_Channel5->PADDR = (uint32_t)&TIM1->CH1CVR;  // Peripheral: TIM1 CH1 compare register
 	DMA1_Channel5->MADDR = (uint32_t)g_rb_ch1;       // Memory: CH1 ring buffer
-	DMA1_Channel5->CNTR  = BUF_SAMPLES;              // Number of transfers
+	DMA1_Channel5->CNTR  = BUF_SAMPLES * OSR;        // Number of transfers (with oversampling)
 	DMA1_Channel5->CFGR  = DMA_CFGR1_DIR |           // Memory to peripheral
-						   DMA_CFGR1_MSIZE_0 | // 16-bit memory
-					       DMA_CFGR1_PSIZE_1 | // 32-bit peripheral
+						   // No MSIZE flags = 8-bit memory transfer
+					       DMA_CFGR1_PSIZE_1 |       // 32-bit peripheral
 	                       DMA_CFGR1_CIRC |          // Circular mode
 						   DMA_CFGR1_PL |            // High priority
 	                       DMA_CFGR1_MINC |          // Memory increment
@@ -237,8 +239,8 @@ int main()
 	printf("Channels: %d, Orders: %d, Patterns: %d\n\r",
 	       mod_player->channels, mod_player->orders, mod_player->maxpattern);
 
-	// Fill first half
-	RenderMOD((short *)(void *)g_rb_ch1, BUF_SAMPLES,osr);
+	// Fill entire buffer initially
+	RenderMOD(g_rb_ch1, BUF_SAMPLES);
 
 	// Reset counters
 	g_buffer_offset = 0;
