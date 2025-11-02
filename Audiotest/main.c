@@ -11,7 +11,7 @@
 #define DMASIZE		      8
 #define OSR			      8
 #define FRACTIONALDSM     1			 // 1 = active
-#define NOISE_MODE        1          // 0 = sine wave, 1 = white noise
+#define NOISE_MODE        0          // 0 = sine wave, 1 = white noise
 #define SAMPLE_RATE       187500/8U      // PWM update/sample rate
 #define BUF_SAMPLES       512U        // DMA transfer length in samples
 #define SINE_FREQ         500U        // Generated tone frequency in Hz
